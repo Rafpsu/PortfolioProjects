@@ -1,0 +1,90 @@
+#Select data I am going to use
+SELECT Location,date, total_cases, new_cases, total_deaths, population
+FROM `vibrant-victory-370120.Covid_project.Covid_deaths` 
+ORDER BY 1,2
+
+
+--Looking at total cases vs total deaths
+SELECT Location,date, total_cases, total_deaths, (total_deaths/total_cases)*100 AS DeathPercentage
+FROM`vibrant-victory-370120.Covid_project.Covid_deaths`
+WHERE Location = 'United States'
+ORDER BY 1,2
+
+--Looking at Total Cases vs Population
+--Shows what percentage of population got covid
+
+SELECT Location,date,population, total_cases, (total_cases/population)*100 AS PercentagePopulationInfected 
+FROM `vibrant-victory-370120.Covid_project.Covid_deaths`
+ORDER BY 1,2
+
+--Looking at countries with the highest Infections rates compared to Population 
+
+SELECT  Location, population, max(total_cases) AS HighestInfectionCount, (MAX(total_cases)/population)*100 AS PercentagePopulationInfected
+FROM`vibrant-victory-370120.Covid_project.Covid_deaths`
+GROUP BY location, population
+ORDER BY PercentagePopulationInfected DESC
+
+--Showing countries with the highest death count per popluation
+
+SELECT Location, MAX(CAST(total_deaths AS INT) )AS TotalDeathCount
+FROM`vibrant-victory-370120.Covid_project.Covid_deaths`
+WHERE continent IS NOT NULL
+GROUP BY location
+ORDER BY TotalDeathCount DESC
+
+-- Breaking things down by continnent
+SELECT location, MAX(CAST(total_deaths AS INT) )AS TotalDeathCount
+FROM`vibrant-victory-370120.Covid_project.Covid_deaths`
+WHERE continent IS NULL
+GROUP BY location
+ORDER BY TotalDeathCount DESC
+
+-- Global Numbers
+SELECT date, SUM(new_cases) AS TotalCases, SUM(cast(new_deaths AS INT)) AS TotalDeaths, SUM(CAST(new_deaths AS INT))/SUM(new_cases)*100 as DeathPercentage
+FROM `vibrant-victory-370120.Covid_project.Covid_deaths`
+WHERE continent IS NOT NULL 
+Group by date
+ORDER BY 1,2
+
+-- Join two tables
+SELECT *
+FROM `vibrant-victory-370120.Covid_project.Covid_deaths` dea
+JOIN `vibrant-victory-370120.Covid_project.covid_vaccinations` vac
+  ON dea.location = vac.location
+  AND dea.date = vac.date
+
+-- Looking at Total Population vs Vaccinations
+  
+SELECT dea.continent, dea.location,dea.date, dea.population, vacc.new_vaccinations, SUM(cast(vacc.new_vaccinations AS INT)) OVER (PARTITION BY dea.location 
+ORDER BY dea.location, dea.date) AS RollingPeopleVaccinated 
+FROM `vibrant-victory-370120.Covid_project.Covid_deaths` dea
+JOIN `vibrant-victory-370120.Covid_project.covid_vaccinations` vacc
+  ON dea.location = vacc.location 
+  AND dea.date= vacc.date
+WHERE dea.continent IS NOT NULL
+ORDER BY 2,3
+
+
+-- Use CTE
+WITH PopVsVacc(Continent, Location, Date, Population, New_Vaccinations, RollingPeopleVaccinated)
+AS 
+(  
+SELECT dea.continent, dea.location, dea.date, dea.population, vacc.new_vaccinations, SUM(cast(vacc.new_vaccinations AS INT)) OVER (PARTITION BY dea.location 
+  ORDER BY dea.location, dea.date) AS RollingPeopleVaccinated 
+  FROM `vibrant-victory-370120.Covid_project.Covid_deaths` dea
+  JOIN `vibrant-victory-370120.Covid_project.covid_vaccinations` vacc
+    ON dea.location = vacc.location 
+    AND dea.date= vacc.date
+  WHERE dea.continent IS NOT NULL
+)
+SELECT* 
+FROM PopVsVacc
+
+
+
+
+
+
+
+
+
